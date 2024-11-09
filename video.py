@@ -8,6 +8,7 @@ import requests
 import base64
 import os
 from dotenv import load_dotenv
+import time
 
 load_dotenv()
 
@@ -60,13 +61,15 @@ def update_database(id_database, index):
     return id
 
 
-def add_person_to_index(img_path, index):
-    embedding = create_embedding(img_path)
+def add_person_to_index(frame, index):
+    embedding = create_embedding(frame)
     index.add(embedding)
     person_id = update_database(id_database, index)
-    url = upload_to_imgur(img_path)
     
-    print(url)
+    cv2.imwrite("temp_frame.jpg", frame)
+    url = upload_to_imgur("temp_frame.jpg")
+
+    # Save URL to database
 
     write_index(index, f"faiss_index")
 
@@ -77,14 +80,14 @@ def add_person_to_index(img_path, index):
 SAMPLING --------------------------------------------------------------------------------------------------------------------------------
 """
 # Loop through images and add embeddings to the index
-for i in range(1, 3):
-    add_person_to_index(f"imgs/img{i}.jpg", index)
+# for i in range(1, 3):
+#     add_person_to_index(f"imgs/img{i}.jpg", index)
 
-embedding = create_embedding("imgs/sundar.jpeg")
-k = 1  # Number of closest matches
+# embedding = create_embedding("imgs/sundar.jpeg")
+# k = 1  # Number of closest matches
 
-distances, indices = index.search(embedding, k)
-print("Person:", id_database[indices[0][0]], "\nScore:", 1/(1+distances[0][0]))
+# distances, indices = index.search(embedding, k)
+# print("Person:", id_database[indices[0][0]], "\nScore:", 1/(1+distances[0][0]))
 
 """
 ----------------------------------------------------------------------------------------------------------------------------------------
@@ -105,10 +108,10 @@ def recognize_face_in_frame(frame, index):
                 print(f"Recognized: {person_id}, Score: {score}")
             else:
                 print("High score, but Unknown Face Detected without id!")
-                add_person_to_index("temp_frame.jpg", index)
+                add_person_to_index(frame, index)
         else:
             print("Unknown Face Detected with low score!")
-            add_person_to_index("temp_frame.jpg", index)
+            add_person_to_index(frame, index)
 
     except Exception as e:
         print(f"Error during face recognition: {e}")
@@ -125,18 +128,22 @@ if not video_capture.isOpened():
     print("Error opening video capture device")
     exit()
 
+last_recognition_time = time.time()
+
 while True:
     ret, frame = video_capture.read()
     if not ret:
         break
 
-    # Convert frame to image file
-    cv2.imwrite("temp_frame.jpg", frame)
+    # Get current time
+    current_time = time.time()
+    
+    # Only perform recognition if 5 seconds have passed
+    if current_time - last_recognition_time >= 3:
+        recognize_face_in_frame(frame, index)
+        last_recognition_time = current_time
 
-    # Perform face recognition
-    recognize_face_in_frame("temp_frame.jpg", index)
-
-    # Display the resulting frame
+    # Display the frame (this still happens every frame for smooth video)
     cv2.imshow("Video", frame)
 
     if cv2.waitKey(1) & 0xFF == ord("q"):
