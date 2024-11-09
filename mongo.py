@@ -7,6 +7,10 @@ load_dotenv()
 
 MONGODB_URL = os.getenv("MONGODB_URL")
 
+mongoClient = MongoClient(MONGODB_URL, tlsCAFile=certifi.where())
+mongoDB = mongoClient["recall"]
+
+
 """
 users = [
     {
@@ -31,10 +35,14 @@ users = [
                 "due_date": "2022-01-01",
             }
         ],
-        broadcastList: ["the@gmail.com", "coding@gmail.com"]
+        broadcastList: ["the@gmail.com", "coding@gmail.com"],
+        "reminders": [
+            {
+                "id": <consecutive_numerals>,
+                time: "",
+                message: ""
+            }
+        ]
     }
 ]
 """
-
-mongoClient = MongoClient(MONGODB_URL, tlsCAFile=certifi.where())
-mongoDB = mongoClient["recall"]
