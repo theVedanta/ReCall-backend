@@ -28,6 +28,7 @@ async def create_user(request: Request):
         print(e)
         return {"error": "User not created"}
 
+
 @app.put("/add-to-broadcast")
 async def create_user(request: Request, user_id: str):
     data = await request.json()
@@ -93,6 +94,7 @@ async def add_user_reminder(request: Request, user_id: str):
         print(e)
         return {"error": "Failed to add reminder"}
 
+
 @app.get("/reminder/get")
 async def get_user_reminders(user_id: str):
     try:
@@ -105,6 +107,7 @@ async def get_user_reminders(user_id: str):
     except Exception as e:
         print(e)
         return {"error": "Failed to retrieve reminders"}
+
 
 @app.delete("/reminder/delete")
 async def delete_user_reminder(user_id: str, reminder_id: int):
@@ -120,6 +123,7 @@ async def delete_user_reminder(user_id: str, reminder_id: int):
     except Exception as e:
         print(e)
         return {"error": "Failed to delete reminder"}
+
 
 @app.get("/check-reminder")
 async def check_user_reminders(user_id: str):
@@ -137,10 +141,10 @@ async def check_user_reminders(user_id: str):
         
         if due_reminders:
             # Remove due reminders
-            mongoDB.users.update_one(
-                {"_id": user_id},
-                {"$pull": {"reminders": {"time": current_time}}}
-            )
+            # mongoDB.users.update_one(
+            #     {"_id": user_id},
+            #     {"$pull": {"reminders": {"time": current_time}}}
+            # )
             
             return {
                 "notifications": [
