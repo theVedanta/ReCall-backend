@@ -1,0 +1,8 @@
+opencv-python
+deepface
+faiss-cpu
+tf_keras
+numpy
+pymongo
+certifi
+python-dotenv
