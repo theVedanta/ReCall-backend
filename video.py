@@ -12,6 +12,8 @@ import time
 
 load_dotenv()
 
+id_database = {}
+
 
 def upload_to_imgur(img_path):
     try:
@@ -33,23 +35,11 @@ def upload_to_imgur(img_path):
         return None
 
 
-id_database = {}
-
-# Generate an embedding from the first image to determine dimensionality
-# first_embedding_obj = DeepFace.represent(img_path="img1.jpg")
-# embedding_dim = len(first_embedding_obj[0]["embedding"])
-embedding_dim = 4096
-
-
 def create_embedding(img_path):
     embedding_objs = DeepFace.represent(img_path=img_path)
     embedding = np.array(embedding_objs[0]["embedding"], dtype="float32").reshape(1, -1)
 
     return embedding
-
-
-# Create the FAISS index
-index = faiss.IndexFlatL2(embedding_dim)
 
 
 def update_database(id_database, index):
@@ -65,13 +55,13 @@ def add_person_to_index(frame, index):
     embedding = create_embedding(frame)
     index.add(embedding)
     person_id = update_database(id_database, index)
-    
-    cv2.imwrite("temp_frame.jpg", frame)
-    url = upload_to_imgur("temp_frame.jpg")
+
+    cv2.imwrite(f"temp_frame{index.ntotal-1}.jpg", frame)
+    # url = upload_to_imgur("temp_frame.jpg")
 
     # Save URL to database
 
-    write_index(index, f"faiss_index")
+    # write_index(index, f"faiss_index")
 
     print(f"Added person with ID: {person_id}")
 
@@ -100,9 +90,9 @@ def recognize_face_in_frame(frame, index):
 
         k = 1
         distances, indices = index.search(embedding, k)
-        score = 1/(1+distances[0][0])
+        score = 1 / (1 + distances[0][0])
 
-        if score > 0.4:
+        if score > 0.7:
             person_id = id_database.get(indices[0][0])
             if person_id:
                 print(f"Recognized: {person_id}, Score: {score}")
@@ -118,37 +108,51 @@ def recognize_face_in_frame(frame, index):
         pass
 
 
-# Video stream setup
-video_capture = cv2.VideoCapture(
-    0
-)  # Use 0 for default webcam or provide video file path
+def video():
+    global id_database
 
-if not video_capture.isOpened():
-    print(video_capture)
-    print("Error opening video capture device")
-    exit()
+    # Generate an embedding from the first image to determine dimensionality
+    # first_embedding_obj = DeepFace.represent(img_path="img1.jpg")
+    # embedding_dim = len(first_embedding_obj[0]["embedding"])
+    embedding_dim = 4096
 
-last_recognition_time = time.time()
+    # Create the FAISS index
+    index = faiss.IndexFlatL2(embedding_dim)
 
-while True:
-    ret, frame = video_capture.read()
-    if not ret:
-        break
+    # Video stream setup
+    video_capture = cv2.VideoCapture(
+        0
+    )  # Use 0 for default webcam or provide video file path
 
-    # Get current time
-    current_time = time.time()
-    
-    # Only perform recognition if 5 seconds have passed
-    if current_time - last_recognition_time >= 3:
-        recognize_face_in_frame(frame, index)
-        last_recognition_time = current_time
+    if not video_capture.isOpened():
+        print(video_capture)
+        print("Error opening video capture device")
+        exit()
 
-    # Display the frame (this still happens every frame for smooth video)
-    cv2.imshow("Video", frame)
+    last_recognition_time = time.time()
 
-    if cv2.waitKey(1) & 0xFF == ord("q"):
-        break
+    while True:
+        ret, frame = video_capture.read()
+        if not ret:
+            break
+
+        # Get current time
+        current_time = time.time()
+
+        # Only perform recognition if 5 seconds have passed
+        if current_time - last_recognition_time >= 3:
+            recognize_face_in_frame(frame, index)
+            last_recognition_time = current_time
+
+        # Display the frame (this still happens every frame for smooth video)
+        cv2.imshow("Video", frame)
+
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            break
+
+    video_capture.release()
+    cv2.destroyAllWindows()
 
 
-video_capture.release()
-cv2.destroyAllWindows()
+if __name__ == "__main__":
+    video()

@@ -21,10 +21,16 @@ users = [
                 "id": <consecutive_numerals>,
                 "name": "Jane Doe",
                 "relationship": "mother",
+                "picture": "https://example.com/jane.jpg",
                 "messages": [
                     { ... },
                     { ... },
-                ]
+                ],
+                count: {
+                    value: number,
+                    first: datetime,
+                    last: datetime,
+                }
             }
         ],
         reminders: [
