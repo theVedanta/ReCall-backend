@@ -2,6 +2,7 @@ import speech_recognition as sr
 from typing import Annotated
 import google.generativeai as genai
 from pydantic import BaseModel, Field
+import time
 
 genai.configure(api_key="AIzaSyCB4ZoigxxVFRfe7JUKnioCTxjoTTMAtKU")
 
@@ -14,7 +15,6 @@ class Summary(BaseModel):
     Relationship: str
     convo_summary: str
 
-conversation="""User A: Hey! My weekend was fantastic – I went to Paris with my family!"""
 
 input = """Analyze the following conversation between two persons, 
 Identify the relationship between them (e.g., friends, 
@@ -35,9 +35,11 @@ I invited our younger brother to join us, but unfortunately, he was caught
 up with work and couldn’t make it. My wife and kids were thrilled, 
 though we explored so many iconic spots, from the Eiffel Tower to cozy 
 little cafés along the Seine. Watching their excitement as they took in the 
-sights was priceless. It was truly a memorable trip! How was your weekend?"""
+sights was priceless. It was truly a memorable trip! How was your weekend?
 
-final=conversation+input
+now, the following is what you need to analyse and return a response for:"""
+
+
 
 def get_gemini_repsonse(input):
     model = genai.GenerativeModel('gemini-1.5-flash')
@@ -46,14 +48,15 @@ def get_gemini_repsonse(input):
     ), )
     return response.text
 
-
-print(get_gemini_repsonse(final))
 summary = ""
 r = sr.Recognizer()
 is_recording = False
+current=time.time()
 while True:
     if is_recording:
         summary = ""
+    if time.time()-current>10:
+        break
     try:
         with sr.Microphone() as source:
             r.energy_threshold = 300
@@ -68,3 +71,6 @@ while True:
         pass
 
 
+final = input+summary
+print(final)
+print(get_gemini_repsonse(final))
