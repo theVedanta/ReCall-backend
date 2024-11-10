@@ -13,7 +13,7 @@ import json
 # Initialize FastAPI app
 app = FastAPI()
 
-url = "https://recall-backend-5rw5.onrender.com/"
+url = "https://recall-backend-5rw5.onrender.com/message/add"
 
 headers = {
     "Content-Type": "application/json"  # adjust as needed
@@ -23,32 +23,37 @@ headers = {
 genai.configure(api_key="AIzaSyCB4ZoigxxVFRfe7JUKnioCTxjoTTMAtKU")
 
 input_text = """Analyze the following conversation between two persons, 
-Identify the relationship between them (e.g., friends, 
-coworkers, family members, client-professional) based on the tone, topics 
-discussed, and interaction style. Then, provide a concise summary of the 
-conversation, highlighting the main topics, sentiments expressed, and any
- key decisions or conclusions reached by the persons.
-                   
-
-return json object with keys:
-- relationship: string
-- summary: string
+Identify the relationship between them (e.g., friend, 
+coworker, family member, client-professional) topics 
+discussed, and interaction style. Provide a summary of 20 words.
 
 example1: 
 
-Hey! My weekend was fantastic I went to Paris with my family! 
-The city was as beautiful as ever, with its stunning architecture and lively atmosphere. 
-I invited our younger brother to join us, but unfortunately, he was caught 
-up with work and couldn’t make it. My wife and kids were thrilled, 
+Hey! My weekend was fantastic I went to Paris with my family! My wife and kids were thrilled, 
 though we explored so many iconic spots, from the Eiffel Tower to cozy 
-little cafés along the Seine. Watching their excitement as they took in the 
-sights was priceless. It was truly a memorable trip! How was your weekend?
+little cafés along the Seine.
 
+response:
 {
-  "relationship": "family",
-  "summary": "The speaker had a fantastic weekend in Paris with their family. They visited iconic spots like the Eiffel Tower and cozy cafés along the Seine. The speaker's wife and kids were thrilled, and the speaker found the trip to be memorable."}
+    "name": "no_name",
+    "relationship": "friend",
+    "summary": "He had a fantastic weekend in Paris with his family. They explored iconic spots from the Eiffel Tower to cozy little cafés along the Seine."
+}
 
-Now analyze the below conversation and return the relationship and summary. as a json object."""
+example2:
+
+Hey! My name is John. My day was amazing. I took the family out for a fun city adventure! My wife and kids were so excited as we hopped from one spot to another. How was yours dad?
+
+response:
+{
+    "name": "John",
+    "relationship": "Son",
+    "summary": "John had an amazing day with his family. They went on a fun city adventure hopping from one spot to another."
+}
+If you can't identify the relationship, just say 'acquaintances' and use they/them pronouns. If you can't identify the name, just say 'no_name'.
+CONVERSATION: 
+"""
+
 
 # Define models
 Relation = Annotated[
@@ -57,6 +62,7 @@ Relation = Annotated[
 ]
 
 class Summary(BaseModel):
+    name: str
     Relationship: str
     convo_summary: str
 
@@ -139,10 +145,11 @@ async def trigger_recording(data: RequestData):
         
         payload = {
             "id": data.id,
+            "name": ai_response['name'],
             "relationship": ai_response['Relationship'],
             "summary": ai_response['convo_summary']
         }
-        message={"message": payload}
+        message={"relation_id":data.id,"message": payload}
         response = requests.post(url, json=message, headers=headers)
         if response.status_code == 200:
             print("Data sent to backend")
