@@ -86,11 +86,12 @@ async def create_user(request: Request):
 async def add_relation(request: Request):
     data = await request.json()
     new_relation = data.get("relation")
+    uid = data.get("id")
 
     user = get_user()
     relations = user.get("relations", [])
 
-    relation_id = new_relation.get("id", len(relations) + 1)
+    relation_id = new_relation.get("id", uid)
     new_relation["id"] = relation_id
 
     relations.append(new_relation)
