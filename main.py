@@ -6,17 +6,45 @@ from bson.objectid import ObjectId
 from bson.errors import InvalidId
 from fastapi import HTTPException
 from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
 app = FastAPI()
+origins = [
+    "http://localhost",
+    "http://localhost:8000",
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 user_id = ObjectId("672ef39dfaad60aaca25070f")
+
+
+@app.get("/last-conv")
+async def get_last_conv(request: Request):
+    user = get_user()
+    data = await request.json()
+    relation_id = data.get("relation_id")
+    relations = user.get("relations", [])
+    search_rel = {}
+
+    for relation in relations:
+        if relation["id"] == relation_id:
+            search_rel = relation
+
+    return {"summary": search_rel.get("summary", "No Summary available")}
 
 
 def get_user():
     try:
         object_id = user_id
-        print(object_id)
         return mongoDB.users.find_one({"_id": object_id}, {"_id": 0})
     except InvalidId:
         raise HTTPException(status_code=400, message="Invalid user ID format")
@@ -61,23 +89,18 @@ async def add_relation(request: Request):
 
     user = get_user()
     relations = user.get("relations", [])
-    relations.append(new_relation)
 
-    user = get_user()
-    broadcastList = user.get("broadcastList", [])
-    for relation in relations:
-        (
-            broadcastList.append(relation["email"])
-            if relation["email"] not in broadcastList
-            else None
-        )
+    relation_id = new_relation.get("id", len(relations) + 1)
+    new_relation["id"] = relation_id
+
+    relations.append(new_relation)
 
     try:
         mongoDB.users.update_one(
             {"_id": user_id},
-            {"$set": {"relations": relations, "broadcastList": broadcastList}},
+            {"$set": {"relations": relations}},
         )
-        return {"message": "Relation & Broadcast email added successfully"}
+        return {"message": "Relation added successfully"}
     except Exception as e:
         print(e)
         return {"error": "Relation not added"}
@@ -121,7 +144,10 @@ async def add_count(request: Request):
 @app.post("/message/add")
 async def add_message(request: Request):
     data = await request.json()
-    message = data.get("message")
+    message = data.get("message", {})
+    if message.get("name") == "no_name":
+        del message["name"]
+
     relation_id = data.get("relation_id")
 
     user = get_user()
