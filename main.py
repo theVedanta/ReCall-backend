@@ -86,13 +86,9 @@ async def create_user(request: Request):
 async def add_relation(request: Request):
     data = await request.json()
     new_relation = data.get("relation")
-    uid = data.get("id")
 
     user = get_user()
     relations = user.get("relations", [])
-
-    relation_id = new_relation.get("id", uid)
-    new_relation["id"] = relation_id
 
     relations.append(new_relation)
 
@@ -145,10 +141,7 @@ async def add_count(request: Request):
 @app.post("/message/add")
 async def add_message(request: Request):
     data = await request.json()
-    message = data.get("message", {})
-    if message.get("name") == "no_name":
-        del message["name"]
-
+    message = data.get("message", "")
     relation_id = data.get("relation_id")
 
     user = get_user()
