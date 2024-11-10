@@ -15,7 +15,7 @@ origins = [
     "http://localhost",
     "http://localhost:8000",
     "http://localhost:3000",
-    "https://recall-dashboard.vercel.app"
+    "https://recall-dashboard.vercel.app",
 ]
 
 app.add_middleware(
@@ -90,13 +90,23 @@ async def add_relation(request: Request):
 
     user = get_user()
     relations = user.get("relations", [])
+    new_relations = []
+    found = False
 
-    relations.append(new_relation)
+    for relation in relations:
+        if relation["id"] == new_relation["id"]:
+            new_relations.append(new_relation)
+            found = True
+        else:
+            new_relations.append(relation)
+
+    if not found:
+        new_relations.append(new_relation)
 
     try:
         mongoDB.users.update_one(
             {"_id": user_id},
-            {"$set": {"relations": relations}},
+            {"$set": {"relations": new_relations}},
         )
         return {"message": "Relation added successfully"}
     except Exception as e:
